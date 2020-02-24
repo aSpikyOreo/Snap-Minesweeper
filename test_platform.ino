@@ -1,6 +1,6 @@
 #define M5STACK_MPU6886 
 #include <M5Stack.h>
-////////////////// -> TODO: Clean up and refactor code to work around using structs and
+////////////////// . TODO: Clean up and refactor code to work around using structs and
 //////////////////          proper functionality/practice
 float accX = 0.0F;
 float accY = 0.0F;
@@ -21,6 +21,7 @@ struct circleObj{
 }; 
 typedef struct circleObj Circle;
 
+Circle c;
 
 
 void setup() {
@@ -43,7 +44,16 @@ void setup() {
   M5.Lcd.setCursor(100,150);
   M5.Lcd.setTextSize(1);
   M5.Lcd.printf("by Leechay Moran-Allen");
-  Circle *c = startCirclePosition();
+  c = startCirclePosition();
+  delay(5000);
+}
+
+Circle startCirclePosition(){
+  M5.Lcd.drawCircle(160, 120, 12,WHITE);
+  M5.Lcd.fillCircle(160, 120, 10,GREEN);
+  c.x_a = 160;
+  c.y_a = 120;
+  return c;
 }
 
 void updateAngles(){
@@ -56,43 +66,32 @@ void updateAngles(){
 //  M5.Lcd.print(" degrees");
 }
 
-Circle * startCirclePosition(){
-  Circle *c;
-  M5.Lcd.drawCircle(160, 120, 12,WHITE);
-  M5.Lcd.fillCircle(160, 120, 10,GREEN);
-  c->x_a = 160;
-  c->y_a = 120;
-  return c;
-}
 
-Circle updateCirclePosition(Circle *c){
+Circle updateCirclePosition(Circle c){
   updateAngles();
   M5.Lcd.setCursor(0,220);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Accelerometer data: %d, %d", gyroX, gyroY);
-  if(gyroX != 0 or gyroY != 0){
-    c->x_a = 5*gyroX + c->x_a;
-    c->y_a = 5*gyroY + c->y_a;
+  M5.Lcd.printf("Gyroscope data: %f, %f, %f", gyroX, gyroY, gyroZ);
+  if(pitch != 0 or roll != 0){
+    c.x_a += 0.1*gyroY;
+    c.y_a += 0.1*gyroX;
     
   }
   M5.Lcd.setCursor(0,20);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("IF NOTHING ELSE APPEARS, THEN NULL POINTER EXCEPTION IS PRESENT");
-  M5.Lcd.setCursor(0,70);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("New data: %d, %d", c->x_a, c->y_a);
-  M5.Lcd.drawCircle(c->x_a,c->y_a,12,WHITE);
-  M5.Lcd.fillCircle(c->x_a,c->y_a,10,GREEN);
+  M5.Lcd.printf("New data: %f, %f", c.x_a, c.y_a);
+  M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
+  M5.Lcd.fillCircle(c.x_a,c.y_a,10,GREEN);
 
-  return *c;
+  return c;
 
   
 }
 
 
 void loop() {
-  Circle *c = c;
-  *c = updateCirclePosition(c);
+  M5.Lcd.fillScreen(BLACK);
+  c = updateCirclePosition(c);
   // put your main code here, to run repeatedly:
   delay(100);
 
