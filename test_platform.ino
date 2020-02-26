@@ -13,10 +13,15 @@ float yaw   = 0.0F;
 float gyroX = 0.0F;
 float gyroY = 0.0F;
 float gyroZ = 0.0F;
+//////////////////
+float last_pitch = 0.0F;
+float last_roll = 0.0F;
 
 struct circleObj{
   int x_a;
   int y_a;
+  float v_x;
+  float v_y;
   bool isMoving;
 }; 
 typedef struct circleObj Circle;
@@ -53,6 +58,8 @@ Circle startCirclePosition(){
   M5.Lcd.fillCircle(160, 120, 10,GREEN);
   c.x_a = 160;
   c.y_a = 120;
+  c.v_x = 0.0F;
+  c.v_y = 0.0F;
   return c;
 }
 
@@ -67,16 +74,25 @@ void updateAngles(){
 }
 
 
-Circle updateCirclePosition(Circle c){
+Circle updateCirclePosition(Circle c, float aX, float aY){
   updateAngles();
   M5.Lcd.setCursor(0,220);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Gyroscope data: %f, %f, %f", gyroX, gyroY, gyroZ);
-  if(pitch != 0 or roll != 0){
-    c.x_a += 0.1*gyroY;
-    c.y_a += 0.1*gyroX;
-    
-  }
+  M5.Lcd.printf("Accelerometer data: %f, %f", accX, accY);
+  
+  c.v_x = (-1.0F) * accX;
+  c.x_a += c.v_x;  
+
+  c.v_y = accY;
+  c.y_a += c.v_y;  
+
+  // ball off-screen fix
+  if(c.x_a > 319) {c.x_a = 1;}
+  else if(c.x_a < 1) {c.x_a = 319;}
+  if(c.y_a > 239) {c.y_a = 1;}
+  else if(c.y_a < 1) {c.y_a = 239;}
+
+  
   M5.Lcd.setCursor(0,20);
   M5.Lcd.setTextSize(1);
   M5.Lcd.printf("New data: %f, %f", c.x_a, c.y_a);
@@ -91,8 +107,10 @@ Circle updateCirclePosition(Circle c){
 
 void loop() {
   M5.Lcd.fillScreen(BLACK);
-  c = updateCirclePosition(c);
+  c = updateCirclePosition(c, last_pitch, last_roll);
   // put your main code here, to run repeatedly:
-  delay(100);
+  last_pitch = pitch;
+  last_roll = roll;
+  
 
 }
