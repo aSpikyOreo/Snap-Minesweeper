@@ -74,17 +74,50 @@ void updateAngles(){
 }
 
 
-Circle updateCirclePosition(Circle c, float aX, float aY){
+float computeAccel(char axis){
+  float res = 0.0F;
   updateAngles();
+  switch(axis)
+  {
+    case 'X':
+      res = accX;
+      return res;
+
+    case 'Y':
+      res = accY;
+      return res;
+
+    case 'Z':
+      res = accZ;
+      return res;
+    }
+  return 0.0F;
+  
+}
+
+
+Circle updateCirclePosition(Circle c){
+  float accelX = computeAccel('X');
+  float accelY = computeAccel('Y');
+  float antiJitter = 0.001F; //attempts to reduce overall object sway
   M5.Lcd.setCursor(0,220);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Accelerometer data: %f, %f", accX, accY);
+  M5.Lcd.printf("Accelerometer data: %f, %f", accelX, accelY);
   
-  c.v_x = (-1.0F) * accX;
-  c.x_a += c.v_x;  
 
-  c.v_y = accY;
-  c.y_a += c.v_y;  
+  // invert axis for easier usability
+  if((accelX - antiJitter) > 0.0F){
+    c.x_a -= 1;    
+  }
+  else if((accelX + antiJitter) < 0.0F){
+    c.x_a += 1;    
+  }
+  if((accelY - antiJitter) > 0.0F){
+    c.y_a += 1;    
+  }
+  else if((accelY + antiJitter) < 0.0F){
+    c.y_a -= 1;    
+  }
 
   // ball off-screen fix
   if(c.x_a > 319) {c.x_a = 1;}
@@ -95,7 +128,7 @@ Circle updateCirclePosition(Circle c, float aX, float aY){
   
   M5.Lcd.setCursor(0,20);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("New data: %f, %f", c.x_a, c.y_a);
+  M5.Lcd.printf("New data: %d, %d", c.x_a, c.y_a);
   M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
   M5.Lcd.fillCircle(c.x_a,c.y_a,10,GREEN);
 
@@ -107,7 +140,7 @@ Circle updateCirclePosition(Circle c, float aX, float aY){
 
 void loop() {
   M5.Lcd.fillScreen(BLACK);
-  c = updateCirclePosition(c, last_pitch, last_roll);
+  c = updateCirclePosition(c);
   // put your main code here, to run repeatedly:
   last_pitch = pitch;
   last_roll = roll;
