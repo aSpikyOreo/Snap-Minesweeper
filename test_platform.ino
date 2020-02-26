@@ -1,5 +1,14 @@
 #define M5STACK_MPU6886 
 #include <M5Stack.h>
+
+///////////////// ~> MACROS
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+
+
+
+
+
 ////////////////// . TODO: Clean up and refactor code to work around using structs and
 //////////////////          proper functionality/practice
 float accX = 0.0F;
@@ -39,28 +48,76 @@ void setup() {
   M5.IMU.Init();
   //mine_number = random(1,30); //if this number is chosen then END
 
+  startUp();
+  c = startCirclePosition(); //initialise the circle's position
+  
+  
+  delay(5000);
+}
+
+Circle startCirclePosition(){
+  M5.Lcd.drawCircle(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 12,WHITE);
+  M5.Lcd.fillCircle(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 10,GREEN);
+  c.x_a = SCREEN_WIDTH * 0.5;
+  c.y_a = SCREEN_HEIGHT * 0.5;
+  c.v_x = 0.0F;
+  c.v_y = 0.0F;
+  return c;
+}
+
+void startUp(){
+  // Loading Screen....
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextColor(GREEN , BLACK);
   M5.Lcd.setTextSize(1);
-
   M5.Lcd.setCursor(50,50);
   M5.Lcd.setTextSize(2);
   M5.Lcd.printf("SNAP MINESWEEPER");  
   M5.Lcd.setCursor(100,150);
   M5.Lcd.setTextSize(1);
   M5.Lcd.printf("by Leechay Moran-Allen");
-  c = startCirclePosition();
-  delay(5000);
-}
 
-Circle startCirclePosition(){
-  M5.Lcd.drawCircle(160, 120, 12,WHITE);
-  M5.Lcd.fillCircle(160, 120, 10,GREEN);
-  c.x_a = 160;
-  c.y_a = 120;
-  c.v_x = 0.0F;
-  c.v_y = 0.0F;
-  return c;
+  //Loading Squares -> TODO: Increase functionality for squares to appear as route choices as game progresses
+
+  //NOTE: M5Stack screen is 320 x 240
+  
+  int ref_pointX;
+  int ref_pointY;
+
+  M5.Lcd.drawRoundRect(25,15,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(40,30,GREEN); //top left
+  
+  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),15,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,30,GREEN); //top middle
+
+  M5.Lcd.drawRoundRect(265,15,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(280,30,GREEN); //top right
+
+  M5.Lcd.drawRoundRect(25,(0.5F*SCREEN_HEIGHT - 15),30,30, 10,GREEN);
+  M5.Lcd.drawPixel(40,0.5F*SCREEN_HEIGHT,GREEN); //middle left
+
+  M5.Lcd.drawRoundRect(265,(0.5F*SCREEN_HEIGHT - 15),30,30, 10,GREEN);
+  M5.Lcd.drawPixel(280,0.5F*SCREEN_HEIGHT,GREEN); //middle right
+  
+  M5.Lcd.drawRoundRect(25,195,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(40,210,GREEN); // bottom left
+  
+  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),195,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,210,GREEN); //bottom middle
+  
+  M5.Lcd.drawRoundRect(265,195,30,30, 10,GREEN);
+  M5.Lcd.drawPixel(280,210,GREEN); //bottom right
+//  for(int i =0; i< 9; i++){
+//    // don't draw @ centre-point
+//    
+//    if(i != 4){
+//    ref_pointX = ( (SCREEN_WIDTH/8) + 70*i )%SCREEN_WIDTH;
+//    M5.Lcd.drawPixel(ref_pointX,ref_pointY,GREEN);
+//    ref_pointY = ((SCREEN_HEIGHT/8) + 50*i) % SCREEN_WIDTH;
+//    }
+//  }
+  
+  
 }
 
 void updateAngles(){
