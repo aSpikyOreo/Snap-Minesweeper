@@ -65,6 +65,66 @@ Circle startCirclePosition(){
   return c;
 }
 
+
+void identifyRegion(int x_pos, int y_pos){
+  int middleVertical = (int) 0.5F*SCREEN_HEIGHT - 15.0F;
+  int middleHorizontal = (int) 0.5F*SCREEN_WIDTH-15.0F;
+  switch(x_pos){
+    case 25:
+      switch(y_pos){
+        case 30:
+          M5.Lcd.printf("Region hit! 25,30");
+
+        case (105):
+          M5.Lcd.printf("Region hit! 25,105");
+
+        case 195:
+          M5.Lcd.printf("Region hit! 25,195");
+
+        default:
+          printf("Invalid coordinates..");
+        
+      }
+
+    case (140):
+      switch(y_pos){
+        case 30:
+          M5.Lcd.printf("Region hit! 140,30");
+
+        case (105):
+          M5.Lcd.printf("Region hit! 140,105");
+
+        case 195:
+          M5.Lcd.printf("Region hit! 140,195");
+
+        default:
+          printf("Invalid coordinates..");
+        
+      }
+
+
+    case 265:
+      switch(y_pos){
+        case 30:
+          M5.Lcd.printf("Region hit! 265,30");
+
+        case (105):
+          M5.Lcd.printf("Region hit! 265,105");
+
+        case 195:
+          M5.Lcd.printf("Region hit! 265,195");
+
+        default:
+          printf("Invalid coordinates..");
+        
+      }
+    default:
+      printf("Invalid coordinates...");
+  }
+}
+
+
+
 void startUp(){
   // Loading Screen....
   M5.Lcd.fillScreen(BLACK);
@@ -83,7 +143,23 @@ void startUp(){
   
   int ref_pointX;
   int ref_pointY;
+  viewLockingRegions();
 
+//  for(int i =0; i< 9; i++){
+//    // don't draw @ centre-point
+//    
+//    if(i != 4){
+//    ref_pointX = ( (SCREEN_WIDTH/8) + 70*i )%SCREEN_WIDTH;
+//    M5.Lcd.drawPixel(ref_pointX,ref_pointY,GREEN);
+//    ref_pointY = ((SCREEN_HEIGHT/8) + 50*i) % SCREEN_WIDTH;
+//    }
+//  }
+  
+  
+}
+
+void viewLockingRegions(){
+  
   M5.Lcd.drawRoundRect(25,15,30,30, 10,GREEN);
   M5.Lcd.drawPixel(40,30,GREEN); //top left
   
@@ -107,17 +183,6 @@ void startUp(){
   
   M5.Lcd.drawRoundRect(265,195,30,30, 10,GREEN);
   M5.Lcd.drawPixel(280,210,GREEN); //bottom right
-//  for(int i =0; i< 9; i++){
-//    // don't draw @ centre-point
-//    
-//    if(i != 4){
-//    ref_pointX = ( (SCREEN_WIDTH/8) + 70*i )%SCREEN_WIDTH;
-//    M5.Lcd.drawPixel(ref_pointX,ref_pointY,GREEN);
-//    ref_pointY = ((SCREEN_HEIGHT/8) + 50*i) % SCREEN_WIDTH;
-//    }
-//  }
-  
-  
 }
 
 void updateAngles(){
@@ -197,7 +262,9 @@ Circle updateCirclePosition(Circle c){
 
 void loop() {
   M5.Lcd.fillScreen(BLACK);
+  viewLockingRegions();
   c = updateCirclePosition(c);
+  identifyRegion(c.x_a, c.y_a);
   // put your main code here, to run repeatedly:
   last_pitch = pitch;
   last_roll = roll;
