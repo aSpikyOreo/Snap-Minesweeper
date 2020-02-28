@@ -23,8 +23,8 @@ float gyroX = 0.0F;
 float gyroY = 0.0F;
 float gyroZ = 0.0F;
 //////////////////
-float last_pitch = 0.0F;
-float last_roll = 0.0F;
+bool locked = false;
+//////////////////////
 
 struct circleObj{
   int x_a;
@@ -66,60 +66,25 @@ Circle startCirclePosition(){
 }
 
 
-void identifyRegion(int x_pos, int y_pos){
-  int middleVertical = (int) 0.5F*SCREEN_HEIGHT - 15.0F;
-  int middleHorizontal = (int) 0.5F*SCREEN_WIDTH-15.0F;
-  switch(x_pos){
-    case 25:
-      switch(y_pos){
-        case 30:
-          M5.Lcd.printf("Region hit! 25,30");
+void regionLock(int x_pos, int y_pos){
+  if(25 < x_pos < 65){
+    if(25 < y_pos < 65) {locked = true ; c.x_a = 45; c.y_a = 45;}
+    else if(100 < y_pos < 140) {locked = true; c.x_a = 45; c.y_a = 120;}
+    else if(190 < y_pos < 230) {locked = true; c.x_a = 45; c.y_a = 210;}
+  }
 
-        case (105):
-          M5.Lcd.printf("Region hit! 25,105");
-
-        case 195:
-          M5.Lcd.printf("Region hit! 25,195");
-
-        default:
-          printf("Invalid coordinates..");
-        
-      }
-
-    case (140):
-      switch(y_pos){
-        case 30:
-          M5.Lcd.printf("Region hit! 140,30");
-
-        case (105):
-          M5.Lcd.printf("Region hit! 140,105");
-
-        case 195:
-          M5.Lcd.printf("Region hit! 140,195");
-
-        default:
-          printf("Invalid coordinates..");
-        
-      }
+  if(120 < x_pos < 160){
+    if(25 < y_pos < 65) {locked = true ; c.x_a = 140; c.y_a = 45;}
+    else if(100 < y_pos < 140) {locked = true; c.x_a = 140; c.y_a = 120;}
+    else if(190 < y_pos < 230) {locked = true; c.x_a = 140; c.y_a = 210;}
+  }
+    
 
 
-    case 265:
-      switch(y_pos){
-        case 30:
-          M5.Lcd.printf("Region hit! 265,30");
-
-        case (105):
-          M5.Lcd.printf("Region hit! 265,105");
-
-        case 195:
-          M5.Lcd.printf("Region hit! 265,195");
-
-        default:
-          printf("Invalid coordinates..");
-        
-      }
-    default:
-      printf("Invalid coordinates...");
+  if(240 < x_pos < 280){
+    if(25 < y_pos < 65) {locked = true ; c.x_a = 260; c.y_a = 45;}
+    else if(100 < y_pos < 140) {locked = true; c.x_a = 260; c.y_a = 120;}
+    else if(190 < y_pos < 230) {locked = true; c.x_a = 260; c.y_a = 210;}
   }
 }
 
@@ -144,44 +109,33 @@ void startUp(){
   int ref_pointX;
   int ref_pointY;
   viewLockingRegions();
-
-//  for(int i =0; i< 9; i++){
-//    // don't draw @ centre-point
-//    
-//    if(i != 4){
-//    ref_pointX = ( (SCREEN_WIDTH/8) + 70*i )%SCREEN_WIDTH;
-//    M5.Lcd.drawPixel(ref_pointX,ref_pointY,GREEN);
-//    ref_pointY = ((SCREEN_HEIGHT/8) + 50*i) % SCREEN_WIDTH;
-//    }
-//  }
-  
   
 }
 
 void viewLockingRegions(){
   
-  M5.Lcd.drawRoundRect(25,15,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(25,15,40,40, 10,GREEN);
   M5.Lcd.drawPixel(40,30,GREEN); //top left
   
-  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),15,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),15,40,40, 10,GREEN);
   M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,30,GREEN); //top middle
 
-  M5.Lcd.drawRoundRect(265,15,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(265,15,40,40, 10,GREEN);
   M5.Lcd.drawPixel(280,30,GREEN); //top right
 
-  M5.Lcd.drawRoundRect(25,(0.5F*SCREEN_HEIGHT - 15),30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(25,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
   M5.Lcd.drawPixel(40,0.5F*SCREEN_HEIGHT,GREEN); //middle left
 
-  M5.Lcd.drawRoundRect(265,(0.5F*SCREEN_HEIGHT - 15),30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(265,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
   M5.Lcd.drawPixel(280,0.5F*SCREEN_HEIGHT,GREEN); //middle right
   
-  M5.Lcd.drawRoundRect(25,195,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(25,195,40,40, 10,GREEN);
   M5.Lcd.drawPixel(40,210,GREEN); // bottom left
   
-  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),195,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),195,40,40, 10,GREEN);
   M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,210,GREEN); //bottom middle
   
-  M5.Lcd.drawRoundRect(265,195,30,30, 10,GREEN);
+  M5.Lcd.drawRoundRect(265,195,40,40, 10,GREEN);
   M5.Lcd.drawPixel(280,210,GREEN); //bottom right
 }
 
@@ -222,9 +176,6 @@ Circle updateCirclePosition(Circle c){
   float accelX = computeAccel('X');
   float accelY = computeAccel('Y');
   float antiJitter = 0.001F; //attempts to reduce overall object sway
-  M5.Lcd.setCursor(0,220);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Accelerometer data: %f, %f", accelX, accelY);
   
 
   // invert axis for easier usability
@@ -263,11 +214,19 @@ Circle updateCirclePosition(Circle c){
 void loop() {
   M5.Lcd.fillScreen(BLACK);
   viewLockingRegions();
-  c = updateCirclePosition(c);
-  identifyRegion(c.x_a, c.y_a);
+  M5.Lcd.setCursor(0,220);
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.printf("Locked: %d? ", locked);
+  if(locked == false){
+    c = updateCirclePosition(c);
+  }
+  else{
+    M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
+    M5.Lcd.fillCircle(c.x_a,c.y_a,10,GREEN);
+  }
+  regionLock(c.x_a, c.y_a);
+
   // put your main code here, to run repeatedly:
-  last_pitch = pitch;
-  last_roll = roll;
   
 
 }
