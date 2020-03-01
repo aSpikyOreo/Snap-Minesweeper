@@ -6,9 +6,6 @@
 #define SCREEN_HEIGHT 240
 
 
-
-
-
 ////////////////// . TODO: Clean up and refactor code to work around using structs and
 //////////////////          proper functionality/practice
 float accX = 0.0F;
@@ -25,12 +22,12 @@ float gyroZ = 0.0F;
 //////////////////
 bool locked = false;
 //////////////////////
+int last_x = 160;
+int last_y = 120;
 
 struct circleObj{
   int x_a;
   int y_a;
-  float v_x;
-  float v_y;
   bool isMoving;
 }; 
 typedef struct circleObj Circle;
@@ -60,33 +57,23 @@ Circle startCirclePosition(){
   M5.Lcd.fillCircle(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 10,GREEN);
   c.x_a = SCREEN_WIDTH * 0.5;
   c.y_a = SCREEN_HEIGHT * 0.5;
-  c.v_x = 0.0F;
-  c.v_y = 0.0F;
+  c.isMoving = true;
   return c;
 }
 
 
-void regionLock(int x_pos, int y_pos){
-  if(25 < x_pos < 65){
-    if(25 < y_pos < 65) {locked = true ; c.x_a = 45; c.y_a = 45;}
-    else if(100 < y_pos < 140) {locked = true; c.x_a = 45; c.y_a = 120;}
-    else if(190 < y_pos < 230) {locked = true; c.x_a = 45; c.y_a = 210;}
-  }
+void regionLock(){
+  if((40 < c.x_a and c.x_a < 50) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
+  else if((40 < c.x_a and c.x_a < 50) and (115 < c.y_a and c.y_a < 125)){c.isMoving=false;}
+  else if((40 < c.x_a and c.x_a < 50) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
 
-  if(120 < x_pos < 160){
-    if(25 < y_pos < 65) {locked = true ; c.x_a = 140; c.y_a = 45;}
-    else if(100 < y_pos < 140) {locked = true; c.x_a = 140; c.y_a = 120;}
-    else if(190 < y_pos < 230) {locked = true; c.x_a = 140; c.y_a = 210;}
-  }
-    
+  else if((155 < c.x_a and c.x_a < 165) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
+  else if((155 < c.x_a and c.x_a < 165) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
 
-
-  if(240 < x_pos < 280){
-    if(25 < y_pos < 65) {locked = true ; c.x_a = 260; c.y_a = 45;}
-    else if(100 < y_pos < 140) {locked = true; c.x_a = 260; c.y_a = 120;}
-    else if(190 < y_pos < 230) {locked = true; c.x_a = 260; c.y_a = 210;}
+  else if((280 < c.x_a and c.x_a < 290) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
+  else if((280 < c.x_a and c.x_a < 290) and (115 < c.y_a and c.y_a < 125)){c.isMoving=false;}
+  else if((280 < c.x_a and c.x_a < 290) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
   }
-}
 
 
 
@@ -105,9 +92,6 @@ void startUp(){
   //Loading Squares -> TODO: Increase functionality for squares to appear as route choices as game progresses
 
   //NOTE: M5Stack screen is 320 x 240
-  
-  int ref_pointX;
-  int ref_pointY;
   viewLockingRegions();
   
 }
@@ -115,28 +99,20 @@ void startUp(){
 void viewLockingRegions(){
   
   M5.Lcd.drawRoundRect(25,15,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(40,30,GREEN); //top left
   
   M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),15,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,30,GREEN); //top middle
 
   M5.Lcd.drawRoundRect(265,15,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(280,30,GREEN); //top right
 
   M5.Lcd.drawRoundRect(25,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
-  M5.Lcd.drawPixel(40,0.5F*SCREEN_HEIGHT,GREEN); //middle left
 
   M5.Lcd.drawRoundRect(265,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
-  M5.Lcd.drawPixel(280,0.5F*SCREEN_HEIGHT,GREEN); //middle right
   
   M5.Lcd.drawRoundRect(25,195,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(40,210,GREEN); // bottom left
   
   M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),195,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(0.5F*SCREEN_WIDTH,210,GREEN); //bottom middle
   
   M5.Lcd.drawRoundRect(265,195,40,40, 10,GREEN);
-  M5.Lcd.drawPixel(280,210,GREEN); //bottom right
 }
 
 void updateAngles(){
@@ -175,22 +151,32 @@ float computeAccel(char axis){
 Circle updateCirclePosition(Circle c){
   float accelX = computeAccel('X');
   float accelY = computeAccel('Y');
-  float antiJitter = 0.001F; //attempts to reduce overall object sway
-  
+  float antiJitter = 0.01F; //attempts to reduce overall object sway
 
-  // invert axis for easier usability
-  if((accelX - antiJitter) > 0.0F){
-    c.x_a -= 1;    
+  if(c.isMoving){
+    
+
+    // invert axis for easier usability
+    if((accelX - antiJitter) > 0.0F){
+      c.x_a -= 1;    
+    }
+    else if((accelX + antiJitter) < 0.0F){
+      c.x_a += 1;    
+    }
+    if((accelY - antiJitter) > 0.0F){
+      c.y_a += 1;    
+    }
+    else if((accelY + antiJitter) < 0.0F){
+      c.y_a -= 1;    
+    }
+
   }
-  else if((accelX + antiJitter) < 0.0F){
-    c.x_a += 1;    
-  }
-  if((accelY - antiJitter) > 0.0F){
-    c.y_a += 1;    
-  }
-  else if((accelY + antiJitter) < 0.0F){
-    c.y_a -= 1;    
-  }
+
+  if(M5.BtnB.wasPressed()){
+    c.isMoving =true;
+    c.x_a = SCREEN_WIDTH * 0.3F;
+    c.y_a = SCREEN_HEIGHT * 0.4F;
+    }
 
   // ball off-screen fix
   if(c.x_a > 319) {c.x_a = 1;}
@@ -199,7 +185,7 @@ Circle updateCirclePosition(Circle c){
   else if(c.y_a < 1) {c.y_a = 239;}
 
   
-  M5.Lcd.setCursor(0,20);
+  M5.Lcd.setCursor(160,120);
   M5.Lcd.setTextSize(1);
   M5.Lcd.printf("New data: %d, %d", c.x_a, c.y_a);
   M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
@@ -216,17 +202,10 @@ void loop() {
   viewLockingRegions();
   M5.Lcd.setCursor(0,220);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Locked: %d? ", locked);
-  if(locked == false){
-    c = updateCirclePosition(c);
-  }
-  else{
-    M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
-    M5.Lcd.fillCircle(c.x_a,c.y_a,10,GREEN);
-  }
-  regionLock(c.x_a, c.y_a);
-
+  M5.Lcd.printf("Moving?: %d ", c.isMoving);
+  c = updateCirclePosition(c);
+  regionLock();
   // put your main code here, to run repeatedly:
   
-
+  M5.update();
 }
