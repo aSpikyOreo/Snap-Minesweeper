@@ -59,13 +59,13 @@ int identifyNeighbours(Space * grid, int index){
     traversalIndex = M % Y_GRID;
 
     //checks if pointing at top or bottom row value
-    if( ((traversalIndex != 0) && (traversalIndex != (Y_GRID-1))) && ( (M < 21 ) && (M > 3) ) ) {
+    if( ((traversalIndex != 0) && (traversalIndex != (Y_GRID-1))) && ( (M <= ((Y_GRID)*(X_GRID-1)-1) ) && (M >= (Y_GRID+1) ) ) ) {
       grid[M].adjacentNeighbours = 0;
       grid[M].adjacentNeighbours = grid[M-1].holdsMine + grid[M+1].holdsMine + grid[ (M + Y_GRID) ].holdsMine
                                  + grid[  (M - Y_GRID) ].holdsMine + grid[ (M-1) + Y_GRID ].holdsMine
                                  + grid[ (M-1) - Y_GRID ].holdsMine + grid[ (M+1) + Y_GRID ].holdsMine
                                  + grid[ (M+1) - Y_GRID ].holdsMine;
-      printf("(Index: %d, Adjacent Neighbours: %d)\n", M, grid[M].adjacentNeighbours);
+      //printf("(Index: %d, Adjacent Neighbours: %d)\n", M, grid[M].adjacentNeighbours);
     }
 
     //four corners
@@ -81,14 +81,14 @@ int identifyNeighbours(Space * grid, int index){
                                                        + grid[ (X_GRID * (Y_GRID - 1)) - Y_GRID].holdsMine
                                                        + grid[ (X_GRID * (Y_GRID - 1)) - (Y_GRID) + 1].holdsMine; //bottom left
 
-    //top & bottom rows
-
-    //left & right columns
 
     for(int K = 1; K < Y_GRID-1; ++K){
       //left column
-      grid[K].adjacentNeighbours = grid[K-1].holdsMine + grid[K+1].holdsMine + grid[(K*Y_GRID)].holdsMine + grid[(K*Y_GRID) - 1].holdsMine
-                                 + grid[(K*Y_GRID) + 1].holdsMine;
+      grid[K].adjacentNeighbours = grid[K-1].holdsMine
+                                 + grid[K+1].holdsMine
+                                 + grid[(K+Y_GRID)].holdsMine
+                                 + grid[(K+Y_GRID) - 1].holdsMine
+                                 + grid[(K+Y_GRID) + 1].holdsMine;
 
       //right column
       grid[ (X_GRID * (Y_GRID - 1)) + K ].adjacentNeighbours = grid[ (X_GRID * (Y_GRID - 1)) + K + 1 ].holdsMine
@@ -174,7 +174,6 @@ void test(){
   //Stage 1
 
   int x = 0;
-  printf("%d\n%d\n", s[4].adjacentNeighbours, grid[4].adjacentNeighbours);
   eqc(s[4].adjacentNeighbours,grid[4].adjacentNeighbours);
 
 

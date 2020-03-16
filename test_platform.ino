@@ -1,13 +1,18 @@
 #define M5STACK_MPU6886 
-#include <M5Stack.h>
+#include <M5Stack.h> 
 
-///////////////// ~> MACROS
+/* MACROS */
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
+/* Minesweeper grid dimensions */
+#define X_GRID 6 
+#define Y_GRID 6 
 
 
 ////////////////// . TODO: Clean up and refactor code to work around using structs and
 //////////////////          proper functionality/practice
+
+
 float accX = 0.0F;
 float accY = 0.0F;
 float accZ = 0.0F;
@@ -19,11 +24,9 @@ float yaw   = 0.0F;
 float gyroX = 0.0F;
 float gyroY = 0.0F;
 float gyroZ = 0.0F;
-//////////////////
-bool locked = false;
-//////////////////////
-int last_x = 160;
-int last_y = 120;
+///////////////////
+bool endgame = false;
+
 
 struct circleObj{
   int x_a;
@@ -31,12 +34,24 @@ struct circleObj{
   bool isMoving;
 }; 
 typedef struct circleObj Circle;
-
 Circle c;
+
+/* Grid Struct */
+struct space {
+  bool holdsMine; 
+  int adjacentNeighbours = 0; //if ¬holdsMine, should have a particular value representing how many neighbours have mines
+  int x_pos, y_pos;
+  bool flagged;
+  bool revealed; 
+}; 
+typedef struct space Space;
+
+Space grid[X_GRID * Y_GRID];
 
 
 void setup() {
-  // put your setup code here, to run once:
+
+    // put your setup code here, to run once:
   // Initialize the M5Stack object
   M5.begin();
 
@@ -45,35 +60,120 @@ void setup() {
   M5.IMU.Init();
   //mine_number = random(1,30); //if this number is chosen then END
 
-  startUp();
-  c = startCirclePosition(); //initialise the circle's position
-  
-  
+  startUp(); 
   delay(5000);
 }
 
-Circle startCirclePosition(){
-  M5.Lcd.drawCircle(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 12,WHITE);
-  M5.Lcd.fillCircle(SCREEN_WIDTH * 0.5, SCREEN_HEIGHT * 0.5, 10,GREEN);
-  c.x_a = SCREEN_WIDTH * 0.5;
-  c.y_a = SCREEN_HEIGHT * 0.5;
-  c.isMoving = true;
-  return c;
+void assignMine(){
+  int rand_num;
+  int mine_count = 0;
+  for(int m = 0; m< (X_GRID * Y_GRID); m++){
+    rand_num = random(1,20);
+    if(rand_num >= 17){
+      grid[m].holdsMine = true;
+    }
+    else{
+      grid[m].holdsMine = false;
+    }
+
+    grid[m].x_pos = 90 + 25*m;
+    grid[m].y_pos = 35 + 25*m;
+  }
+}
+
+/* kek is this 5-point stencil ?????*/
+void identifyNeighbours(){
+  int traversalIndex = 0;
+  int neighbourCount = 0;
+
+  //inner square
+  for(int M = 0 ; M < ( (X_GRID) * (Y_GRID) ); M++) {
+    traversalIndex = M % Y_GRID;
+
+    //checks if pointing at top or bottom row value
+    if( ((traversalIndex != 0) && (traversalIndex != (Y_GRID-1))) && ( (M <= ((Y_GRID)*(X_GRID-1)-1) ) && (M >= (Y_GRID+1) ) ) ) {
+      grid[M].adjacentNeighbours = 0;
+      grid[M].adjacentNeighbours = grid[M-1].holdsMine + grid[M+1].holdsMine + grid[ (M + Y_GRID) ].holdsMine
+                                 + grid[  (M - Y_GRID) ].holdsMine + grid[ (M-1) + Y_GRID ].holdsMine
+                                 + grid[ (M-1) - Y_GRID ].holdsMine + grid[ (M+1) + Y_GRID ].holdsMine
+                                 + grid[ (M+1) - Y_GRID ].holdsMine;
+      //printf("(Index: %d, Adjacent Neighbours: %d)\n", M, grid[M].adjacentNeighbours);
+    }
+
+    //four corners
+    grid[0].adjacentNeighbours = grid[Y_GRID].holdsMine + grid[(Y_GRID + 1)].holdsMine + grid[1].holdsMine;  //top right
+
+    grid[(Y_GRID - 1)].adjacentNeighbours = grid[ (Y_GRID - 1) - 1 ].holdsMine + grid[(Y_GRID - 1) + Y_GRID].holdsMine
+                                          + grid[(Y_GRID - 1) + Y_GRID - 1].holdsMine; //bottom left
+
+    grid[(X_GRID * Y_GRID - 1)].adjacentNeighbours = grid[ (X_GRID * Y_GRID - 1) - 1 ].holdsMine + grid[ (X_GRID * Y_GRID - 1) - Y_GRID].holdsMine
+                                               + grid[ (X_GRID * Y_GRID - 1) - (Y_GRID + 1)].holdsMine; //bottom right
+
+    grid[ (X_GRID * (Y_GRID - 1)) ].adjacentNeighbours = grid[ (X_GRID * (Y_GRID - 1)) + 1 ].holdsMine
+                                                       + grid[ (X_GRID * (Y_GRID - 1)) - Y_GRID].holdsMine
+                                                       + grid[ (X_GRID * (Y_GRID - 1)) - (Y_GRID) + 1].holdsMine; //bottom left
+
+    //top & bottom rows
+
+    //left & right columns
+
+    for(int K = 1; K < Y_GRID-1; ++K){
+      //left column
+      grid[K].adjacentNeighbours = grid[K-1].holdsMine
+                                 + grid[K+1].holdsMine
+                                 + grid[(K+Y_GRID)].holdsMine
+                                 + grid[(K+Y_GRID) - 1].holdsMine
+                                 + grid[(K+Y_GRID) + 1].holdsMine;
+
+      //right column
+      grid[ (X_GRID * (Y_GRID - 1)) + K ].adjacentNeighbours = grid[ (X_GRID * (Y_GRID - 1)) + K + 1 ].holdsMine
+                                                             + grid[ (X_GRID * (Y_GRID - 1)) + K - 1 ].holdsMine
+                                                             + grid[ (X_GRID * (Y_GRID - 1)) + K - Y_GRID ].holdsMine
+                                                             + grid[ (X_GRID * (Y_GRID - 1)) + K - Y_GRID + 1 ].holdsMine
+                                                             + grid[ (X_GRID * (Y_GRID - 1)) + K - Y_GRID - 1 ].holdsMine;
+
+
+      //top row
+      grid[K*Y_GRID].adjacentNeighbours = grid[K*Y_GRID + 1].holdsMine + grid[(K+1)*Y_GRID].holdsMine + grid[(K-1)*Y_GRID].holdsMine
+                                        + grid[K*Y_GRID + 1 - Y_GRID].holdsMine + grid[K*Y_GRID + 1 + Y_GRID].holdsMine;
+
+
+
+      //bottom row
+      grid[(K+1)*(Y_GRID) - 1 ].adjacentNeighbours = grid[(K+1)*(Y_GRID) - 1 - 1].holdsMine
+                                                   + grid[(K+1)*(Y_GRID) - 1 - Y_GRID].holdsMine
+                                                   + grid[(K+1)*(Y_GRID) - 1 + Y_GRID].holdsMine
+                                                   + grid[(K+1)*(Y_GRID) - 1 - Y_GRID - 1].holdsMine
+                                                   + grid[(K+1)*(Y_GRID) - 1 + Y_GRID - 1].holdsMine;
+    }
+
+
+
+//    //index getter for testing
+//    if(M == index){
+//      neighbourCount = grid[M].adjacentNeighbours;
+//    }
+  }
+//  return neighbourCount;
 }
 
 
 void regionLock(){
-  if((40 < c.x_a and c.x_a < 50) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
-  else if((40 < c.x_a and c.x_a < 50) and (115 < c.y_a and c.y_a < 125)){c.isMoving=false;}
-  else if((40 < c.x_a and c.x_a < 50) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
-
-  else if((155 < c.x_a and c.x_a < 165) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
-  else if((155 < c.x_a and c.x_a < 165) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
-
-  else if((280 < c.x_a and c.x_a < 290) and (30 < c.y_a and c.y_a < 40)){c.isMoving=false;}
-  else if((280 < c.x_a and c.x_a < 290) and (115 < c.y_a and c.y_a < 125)){c.isMoving=false;}
-  else if((280 < c.x_a and c.x_a < 290) and (205 < c.y_a and c.y_a < 215)){c.isMoving=false;}
+  int x_shift, y_shift;
+  for(int ii = 0; ii < X_GRID; ii++ ){
+    x_shift = 25 * ii;
+    for(int jj = 0; jj < Y_GRID; jj++){
+      y_shift = 25* jj; 
+      if(( (97 + x_shift) < c.x_a and c.x_a < (107 + x_shift) ) and ( (43+y_shift) < c.y_a and c.y_a < (53+y_shift) )){
+        if(M5.BtnC.wasPressed()){
+          c.isMoving=false;
+        }
+      }
+    }
   }
+}
+
+  
 
 
 
@@ -81,11 +181,10 @@ void startUp(){
   // Loading Screen....
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextColor(GREEN , BLACK);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.setCursor(50,50);
+  M5.Lcd.setCursor(80,10);
   M5.Lcd.setTextSize(2);
   M5.Lcd.printf("SNAP MINESWEEPER");  
-  M5.Lcd.setCursor(100,150);
+  M5.Lcd.setCursor(90,210);
   M5.Lcd.setTextSize(1);
   M5.Lcd.printf("by Leechay Moran-Allen");
 
@@ -93,38 +192,87 @@ void startUp(){
 
   //NOTE: M5Stack screen is 320 x 240
   viewLockingRegions();
+  assignMine();
+  identifyNeighbours();
   
 }
 
+//view the grid
 void viewLockingRegions(){
-  
-  M5.Lcd.drawRoundRect(25,15,40,40, 10,GREEN);
-  
-  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),15,40,40, 10,GREEN);
+  int x_shift, y_shift;
+  for(int ii = 0; ii < X_GRID; ii++ ){ 
+    x_shift = 25 * ii;
+    for(int jj = 0; jj < Y_GRID; jj++){
+      y_shift = 25* jj;
 
-  M5.Lcd.drawRoundRect(265,15,40,40, 10,GREEN);
 
-  M5.Lcd.drawRoundRect(25,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
+      //cheat-mode
+      if(grid[Y_GRID*ii + jj].holdsMine == true){
+        M5.Lcd.drawRoundRect(90 + x_shift,35+y_shift,25,25, 5,GREEN);
+        M5.Lcd.fillRoundRect(90 + x_shift,35+y_shift,23,23, 5,RED);
+      }
 
-  M5.Lcd.drawRoundRect(265,(0.5F*SCREEN_HEIGHT - 15),40,40, 10,GREEN);
-  
-  M5.Lcd.drawRoundRect(25,195,40,40, 10,GREEN);
-  
-  M5.Lcd.drawRoundRect((0.5F*SCREEN_WIDTH - 15),195,40,40, 10,GREEN);
-  
-  M5.Lcd.drawRoundRect(265,195,40,40, 10,GREEN);
+      
+      else if(grid[Y_GRID*ii + jj].revealed) {
+        M5.Lcd.setTextColor(GREEN,BLACK);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(90 + x_shift + 1,35+y_shift + 10 );
+        M5.Lcd.printf(" '%d' ", grid[Y_GRID*ii + jj].adjacentNeighbours);
+      }
+      else{
+         M5.Lcd.drawRoundRect(90 + x_shift,35+y_shift,25,25, 5,GREEN);
+         M5.Lcd.fillRoundRect(90 + x_shift,35+y_shift,23,23, 5,0x7bef);
+      }
+    }
+    
+  }
 }
 
+//once locked, flip M5Stack upside down to confirm position
+bool moveConfirmed(float currentAngle){
+  return(abs(currentAngle) > 170.0F );
+}
+
+//find the space the circle is locked in using its co-ordinates
+int getSpaceIndex(int circle_x, int circle_y){
+  
+  int index = 0;
+  int rem_x = 0;
+  int rem_y = 0;
+
+  rem_x = int((circle_x - 90)*0.04F);
+  rem_y = int((circle_y -35)*0.04F);
+
+
+  index = Y_GRID*rem_x + (rem_y);
+  return index;
+}
+
+
+// after a move is confirmed, reveal space and determine the game progression's next steps
+// any neighbouring spaces with zero neighbours should also be unveiled
+
+void determineOutcome(Circle c){
+  int index;
+  index = getSpaceIndex(c.x_a, c.y_a);
+  if(moveConfirmed(roll) and c.isMoving == false){
+    if(grid[index].holdsMine == true){
+      endgame = true;
+    }
+    else{
+      grid[index].revealed = true;
+      
+    }
+  }
+}
+
+
+//updates values holding key accelerometer, gyroscope, & rotational data
 void updateAngles(){
   M5.IMU.getAhrsData(&pitch,&roll,&yaw);
   M5.IMU.getAccelData(&accX, &accY, &accZ);
   M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
-//  M5.Lcd.setCursor(0, 10);
-//  M5.Lcd.printf(" %5.2f   %5.2f   %5.2f   ", pitch, roll, yaw); // x, y and z angles respectively
-//  M5.Lcd.setCursor(150,10 );
-//  M5.Lcd.print(" degrees");
 }
-
 
 float computeAccel(char axis){
   float res = 0.0F;
@@ -146,7 +294,6 @@ float computeAccel(char axis){
   return 0.0F;
   
 }
-
 
 Circle updateCirclePosition(Circle c){
   float accelX = computeAccel('X');
@@ -174,8 +321,8 @@ Circle updateCirclePosition(Circle c){
 
   if(M5.BtnB.wasPressed()){
     c.isMoving =true;
-    c.x_a = SCREEN_WIDTH * 0.3F;
-    c.y_a = SCREEN_HEIGHT * 0.4F;
+    c.x_a = SCREEN_WIDTH * 0.5F;
+    c.y_a = SCREEN_HEIGHT * 0.8F;
     }
 
   // ball off-screen fix
@@ -185,27 +332,36 @@ Circle updateCirclePosition(Circle c){
   else if(c.y_a < 1) {c.y_a = 239;}
 
   
-  M5.Lcd.setCursor(160,120);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("New data: %d, %d", c.x_a, c.y_a);
-  M5.Lcd.drawCircle(c.x_a,c.y_a,12,WHITE);
-  M5.Lcd.fillCircle(c.x_a,c.y_a,10,GREEN);
+//  M5.Lcd.setCursor(160,120);
+//  M5.Lcd.setTextSize(1);
+//  M5.Lcd.printf("New data: %d, %d", c.x_a, c.y_a);
+  M5.Lcd.drawCircle(c.x_a,c.y_a,5,WHITE);
+  M5.Lcd.fillCircle(c.x_a,c.y_a,3,GREEN);
 
   return c;
 
   
 }
 
-
 void loop() {
+  if(!endgame){
   M5.Lcd.fillScreen(BLACK);
   viewLockingRegions();
   M5.Lcd.setCursor(0,220);
   M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Moving?: %d ", c.isMoving);
+  M5.Lcd.printf("Current Space No: %d ", getSpaceIndex(c.x_a, c.y_a));
   c = updateCirclePosition(c);
   regionLock();
+  determineOutcome(c);
   // put your main code here, to run repeatedly:
   
   M5.update();
+  }
+  else{
+    M5.Lcd.fillScreen(WHITE);
+    M5.Lcd.setTextColor(BLUE , WHITE);
+    M5.Lcd.setCursor(50,150);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.printf("GAME OVER");
+  }
 }
