@@ -9,6 +9,8 @@
 #define Y_GRID 6 
 
 
+
+
 ////////////////// . TODO: Clean up and refactor code to work around using structs and
 //////////////////          proper functionality/practice
 
@@ -26,7 +28,7 @@ float gyroY = 0.0F;
 float gyroZ = 0.0F;
 ///////////////////
 bool endgame = false;
-
+int loop_count = 0;
 
 struct circleObj{
   int x_a;
@@ -217,7 +219,7 @@ void viewLockingRegions(){
         M5.Lcd.setTextColor(GREEN,BLACK);
         M5.Lcd.setTextSize(1);
         M5.Lcd.setCursor(90 + x_shift + 1,35+y_shift + 10 );
-        M5.Lcd.printf(" '%d' ", grid[Y_GRID*ii + jj].adjacentNeighbours);
+        M5.Lcd.printf(" %d ", grid[Y_GRID*ii + jj].adjacentNeighbours);
       }
       else{
          M5.Lcd.drawRoundRect(90 + x_shift,35+y_shift,25,25, 5,GREEN);
@@ -227,6 +229,15 @@ void viewLockingRegions(){
     
   }
 }
+
+
+
+//if the circle is within the grid, draw over that particular circle
+
+//if the circle is not inside that grid, draw black over it's last position
+
+
+
 
 //once locked, flip M5Stack upside down to confirm position
 bool moveConfirmed(float currentAngle){
@@ -295,14 +306,12 @@ float computeAccel(char axis){
   
 }
 
-Circle updateCirclePosition(Circle c){
+Circle updateCirclePosition(Circle c, int prevX, int prevY){
   float accelX = computeAccel('X');
   float accelY = computeAccel('Y');
   float antiJitter = 0.01F; //attempts to reduce overall object sway
 
   if(c.isMoving){
-    
-
     // invert axis for easier usability
     if((accelX - antiJitter) > 0.0F){
       c.x_a -= 1;    
@@ -328,33 +337,54 @@ Circle updateCirclePosition(Circle c){
   // ball off-screen fix
   if(c.x_a > 319) {c.x_a = 1;}
   else if(c.x_a < 1) {c.x_a = 319;}
+  
   if(c.y_a > 239) {c.y_a = 1;}
   else if(c.y_a < 1) {c.y_a = 239;}
 
-  
-//  M5.Lcd.setCursor(160,120);
-//  M5.Lcd.setTextSize(1);
-//  M5.Lcd.printf("New data: %d, %d", c.x_a, c.y_a);
   M5.Lcd.drawCircle(c.x_a,c.y_a,5,WHITE);
   M5.Lcd.fillCircle(c.x_a,c.y_a,3,GREEN);
+  M5.Lcd.drawCircle(prevX,prevY,5,BLACK);
+  M5.Lcd.fillCircle(prevX,prevY,3,BLACK);
 
   return c;
 
   
 }
 
+void fillBackground(int prevX, int prevY){
+  if( !((c.x_a > 90 && c.x_a < 215) && (c.y_a > 35 && c.y_a < 160)) ){
+    M5.Lcd.drawCircle(prevX, prevY,5,BLACK);
+    M5.Lcd.fillCircle(prevX, prevY,3,BLACK);
+  }
+  
+}
+
 void loop() {
+  int lastX, lastY;
   if(!endgame){
-  M5.Lcd.fillScreen(BLACK);
-  viewLockingRegions();
-  M5.Lcd.setCursor(0,220);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.printf("Current Space No: %d ", getSpaceIndex(c.x_a, c.y_a));
-  c = updateCirclePosition(c);
+    if(loop_count == 0){
+      M5.Lcd.fillScreen(BLACK);
+      M5.Lcd.setCursor(0,220);
+      M5.Lcd.setTextSize(1);
+      
+    }
+    if(loop_count > 0){
+      lastX = c.x_a;
+      lastY = c.y_a;
+    }
+    viewLockingRegions();
+//  M5.Lcd.fillScreen(BLACK);
+//  viewLockingRegions();
+//  M5.Lcd.setCursor(0,220);
+//  M5.Lcd.setTextSize(1);
+//  M5.Lcd.printf("Current Space No: %d ", getSpaceIndex(c.x_a, c.y_a));
+  c = updateCirclePosition(c, lastX,lastY);
+  fillBackground(lastX,lastY);
+//  fillSquares(c);
   regionLock();
   determineOutcome(c);
-  // put your main code here, to run repeatedly:
-  
+  loop_count++;
+  delay(20);
   M5.update();
   }
   else{
