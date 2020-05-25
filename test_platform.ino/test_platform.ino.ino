@@ -22,13 +22,11 @@ float accZ = 0.0F;
 float pitch = 0.0F;
 float roll  = 0.0F;
 float yaw   = 0.0F;
-//////////////////
-float gyroX = 0.0F;
-float gyroY = 0.0F;
-float gyroZ = 0.0F;
-///////////////////
+//////////////////T
 bool endgame = false;
 int loop_count = 0;
+int totalMines = 0;
+int totalSpaces = 0;
 
 struct circleObj{
   int x_a;
@@ -43,13 +41,11 @@ struct space {
   bool holdsMine; 
   int adjacentNeighbours = 0; //if ¬holdsMine, should have a particular value representing how many neighbours have mines
   int x_pos, y_pos;
-  bool flagged;
   bool revealed; 
 }; 
 typedef struct space Space;
 
 Space grid[X_GRID * Y_GRID];
-
 
 void setup() {
 
@@ -61,8 +57,9 @@ void setup() {
     
   M5.IMU.Init();
   //mine_number = random(1,30); //if this number is chosen then END
-
-  startUp(); 
+  startUp();
+  totalSpaces = X_GRID*Y_GRID - totalMines;
+  
   delay(5000);
 }
 
@@ -70,9 +67,10 @@ void assignMine(){
   int rand_num;
   int mine_count = 0;
   for(int m = 0; m< (X_GRID * Y_GRID); m++){
-    rand_num = random(1,20);
+    rand_num = random(0,20);
     if(rand_num >= 17){
       grid[m].holdsMine = true;
+      totalMines++;
     }
     else{
       grid[m].holdsMine = false;
@@ -83,7 +81,6 @@ void assignMine(){
   }
 }
 
-/* kek is this 5-point stencil ?????*/
 void identifyNeighbours(){
   int traversalIndex = 0;
   int neighbourCount = 0;
@@ -193,14 +190,14 @@ void startUp(){
   //Loading Squares -> TODO: Increase functionality for squares to appear as route choices as game progresses
 
   //NOTE: M5Stack screen is 320 x 240
-  viewLockingRegions();
+  viewBoard();
   assignMine();
   identifyNeighbours();
   
 }
 
 //view the grid
-void viewLockingRegions(){
+void viewBoard(){
   int x_shift, y_shift;
   for(int ii = 0; ii < X_GRID; ii++ ){ 
     x_shift = 25 * ii;
@@ -209,13 +206,13 @@ void viewLockingRegions(){
 
 
       //cheat-mode
-      if(grid[Y_GRID*ii + jj].holdsMine == true){
-        M5.Lcd.drawRoundRect(90 + x_shift,35+y_shift,25,25, 5,GREEN);
-        M5.Lcd.fillRoundRect(90 + x_shift,35+y_shift,23,23, 5,RED);
-      }
+//      if(grid[Y_GRID*ii + jj].holdsMine == true){
+//        M5.Lcd.drawRoundRect(90 + x_shift,35+y_shift,25,25, 5,GREEN);
+//        M5.Lcd.fillRoundRect(90 + x_shift,35+y_shift,23,23, 5,RED);
+//      }
 
       
-      else if(grid[Y_GRID*ii + jj].revealed) {
+      if(grid[Y_GRID*ii + jj].revealed) {
         M5.Lcd.setTextColor(GREEN,BLACK);
         M5.Lcd.setTextSize(1);
         M5.Lcd.setCursor(90 + x_shift + 1,35+y_shift + 10 );
@@ -272,7 +269,6 @@ void determineOutcome(Circle c){
     }
     else{
       grid[index].revealed = true;
-      
     }
   }
 }
@@ -282,7 +278,6 @@ void determineOutcome(Circle c){
 void updateAngles(){
   M5.IMU.getAhrsData(&pitch,&roll,&yaw);
   M5.IMU.getAccelData(&accX, &accY, &accZ);
-  M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
 }
 
 float computeAccel(char axis){
@@ -359,25 +354,33 @@ void fillBackground(int prevX, int prevY){
   
 }
 
+bool winGame(){
+  int count = 0;
+  for(int i = 0; i < X_GRID*Y_GRID; i++){
+      count += grid[i].revealed;
+  }
+  return(totalSpaces == count);
+}
+
 void loop() {
   int lastX, lastY;
-  if(!endgame){
+  bool win = winGame();
+  if(!endgame && !win){
     if(loop_count == 0){
       M5.Lcd.fillScreen(BLACK);
       M5.Lcd.setCursor(0,220);
       M5.Lcd.setTextSize(1);
-      
+      M5.Lcd.printf("Current: %d %d", totalMines, totalSpaces);
     }
     if(loop_count > 0){
       lastX = c.x_a;
       lastY = c.y_a;
     }
-    viewLockingRegions();
+//    viewBoard();
 //  M5.Lcd.fillScreen(BLACK);
-//  viewLockingRegions();
+  viewBoard();
 //  M5.Lcd.setCursor(0,220);
 //  M5.Lcd.setTextSize(1);
-//  M5.Lcd.printf("Current Space No: %d ", getSpaceIndex(c.x_a, c.y_a));
   c = updateCirclePosition(c, lastX,lastY);
   fillBackground(lastX,lastY);
 //  fillSquares(c);
@@ -386,6 +389,13 @@ void loop() {
   loop_count++;
   delay(20);
   M5.update();
+  }
+  else if(win){
+    M5.Lcd.fillScreen(RED);
+    M5.Lcd.setTextColor(0xff80 , RED);
+    M5.Lcd.setCursor(50,150);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.printf("YOU WIN");
   }
   else{
     M5.Lcd.fillScreen(WHITE);
